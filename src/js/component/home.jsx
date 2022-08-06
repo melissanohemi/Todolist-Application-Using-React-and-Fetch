@@ -3,33 +3,72 @@ import {Header} from "./Header.jsx";
 import {TodoList} from "./TodoList.jsx";
 import { useState, useEffect } from "react";
 
-//create your first component
 const Home = () => {
 	const [inputValue, setInputValue] = useState('');
+    const [todoList, setTodoList] = useState([]);
 
-	const [todoList, setTodoList] = useState([]);
+    useEffect(() =>{
+        getAllTodos();
+
+    },[]) 
 
 	const addItem = () => {
 		const newList = [...todoList]
-		newList.push(inputValue)
+		newList.push({
+            label:inputValue,
+            done: false
+        })
 		setTodoList(newList)
+        updateApi(newList)
 	}
-	const deleteItem = (index) => {setTodoList(todoList.filter((item, i) => index != i))}
+	const deleteItem = (index) => {
+        const newList= todoList.filter((item, i) => index != i)
+        setTodoList(newList)
+        updateApi(newList)
+    }
+const clearAll = () => {
+    setTodoList([])
+    fetch('https://assets.breatheco.de/apis/fake/todos/user/melissanohemi', {
+    method: 'DELETE',
+    headers: {"Content-Type": "application/json"}
+    })
+   }
 
 const getAllTodos = () => {
     fetch('https://assets.breatheco.de/apis/fake/todos/user/melissanohemi')
     .then((resp) => {
         if (!resp.ok){
-            throw new Error(
-                `${resp.status} - ${resp.statusText}`
-            );
+           createTodos()
+        } else{
+            return resp.json();
         }
-        return resp.json();
+        
     })
     .then((data) => {
-         setTodoList([data[0].label]);
+         setTodoList(data);
     })
 }
+const createTodos = () => {
+    fetch('https://assets.breatheco.de/apis/fake/todos/user/melissanohemi', {
+    method: 'POST',
+    body:JSON.stringify([]),
+    headers: {
+        "Content-Type": "application/json"
+      }
+    })
+    .then((resp) => {
+        console.log(resp);
+        if (!resp.ok){
+            throw new Error(
+                `${resp.status} - ${resp.statusText}`
+            );  
+        }
+        getAllTodos ()
+    })
+    
+}
+
+
 const updateApi = (todos) => {
 		fetch('https://assets.breatheco.de/apis/fake/todos/user/melissanohemi', {
       method: "PUT",
@@ -54,17 +93,16 @@ const updateApi = (todos) => {
         console.log(error);
     });
 	}
-    useEffect(() =>{
-        getAllTodos();
-
-    },[]) 
+  
 	return (
 		<div className="Home">
 			<Header />
 			<input type ="text" onChange={e => setInputValue(e.target.value)} value = {inputValue}/>
 			<button onClick={addItem}></button>
-			<TodoList todoList={todoList} deleteItem={deleteItem}/>
-
+            <button className="delAllButton" onClick={clearAll}>Clear All</button>
+			{todoList?.length > 0 &&  
+                <TodoList todoList={todoList} deleteItem={deleteItem}/>
+            }
 		</div>
 	);
 };
